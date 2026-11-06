@@ -4,16 +4,16 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = "postgresql://neondb_owner:npg_GIJhiu1MCLc7@ep-empty-wave-a11hwjf2-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 }
-
 model Organization {
-  id              String    @id @default(cuid())
-  name            String
-  defaultLowStock Int       @default(5)
-  createdAt       DateTime  @default(now())
-  users           User[]
-  products        Product[]
+  id                    String                 @id @default(cuid())
+  name                  String
+  defaultLowStock       Int                    @default(5)
+  createdAt             DateTime               @default(now())
+  users                 User[]
+  products              Product[]
+  inventoryTransactions InventoryTransaction[]
 }
 
 model User {
@@ -26,19 +26,43 @@ model User {
 }
 
 model Product {
-  id                String       @id @default(cuid())
-  organizationId    String
-  organization      Organization @relation(fields: [organizationId], references: [id])
-  name              String
-  sku               String
-  description       String?
-  quantity          Int          @default(0)
-  costPrice         Decimal?     @db.Decimal(10, 2)
-  sellingPrice      Decimal?     @db.Decimal(10, 2)
-  lowStockThreshold Int?
-  lastUpdatedBy     String?
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  id                    String                 @id @default(cuid())
+  organizationId        String
+  organization          Organization           @relation(fields: [organizationId], references: [id])
+  name                  String
+  sku                   String
+  description           String?
+  quantity              Int                    @default(0)
+  costPrice             Decimal?               @db.Decimal(10, 2)
+  sellingPrice          Decimal?               @db.Decimal(10, 2)
+  lowStockThreshold     Int?
+  lastUpdatedBy         String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  inventoryTransactions InventoryTransaction[]
 
   @@unique([organizationId, sku])
+}
+
+enum InventoryTransactionType {
+  STOCK_IN
+  STOCK_OUT
+}
+
+model InventoryTransaction {
+  id             String                   @id @default(cuid())
+  organizationId String
+  organization   Organization             @relation(fields: [organizationId], references: [id])
+  productId      String
+  product        Product                  @relation(fields: [productId], references: [id])
+  type           InventoryTransactionType
+  quantity       Int
+  previousStock  Int
+  newStock       Int
+  note           String?
+  performedBy    String?
+  createdAt      DateTime                 @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([productId, createdAt])
 }
